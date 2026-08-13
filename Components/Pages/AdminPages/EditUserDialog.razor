@@ -1,0 +1,186 @@
+﻿@using Microsoft.AspNetCore.Components;
+@using Microsoft.AspNetCore.Identity;
+@using MudBlazor;
+@using TyphoonTaskingTool.DTOs;
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Services;
+@inject ISnackbar Snackbar;
+@inject NavigationManager NavigationManager;
+@inject ILookupRolesService LookupRolesService;
+@inject UserManager<ApplicationUser> _userManager;  
+
+<CascadingAuthenticationState>
+
+<MudDialog>
+    <DialogContent>
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Edit User</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseDialog" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Save" OnClick="SaveUser" />
+                </CardHeaderActions>
+            </MudCardHeader>
+
+            <MudCardContent>
+                <MudForm @ref="_form" Model="@EditUserDTO">
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudGrid>
+
+                            <MudItem xs="4">
+                                <MudTextField Label="User Name"
+                                              @bind-Value="EditUserDTO.UserName"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudTextField Label="Email"
+                                              @bind-Value="EditUserDTO.Email"
+                                              Variant="Variant.Outlined" />
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudSelect T="string"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="selectedRoleIds"
+                                           Label="Roles"
+                                           Variant="Variant.Outlined"
+                                           ToStringFunc="@(id => roleList.FirstOrDefault(r => r.RoleId == id)?.RoleName)">
+                                    @foreach (var r in roleList)
+                                    {
+                                        <MudSelectItem T="string" Value="@r.RoleName">@r.RoleName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudSwitch T="bool"
+                                            @bind-Checked="EditUserDTO.IsDisabled"
+                                           Color="Color.Error"
+                                           UncheckedColor="Color.Success"
+                                           Label="Disable User" />
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudTextField Label="New Password"
+                                              @bind-Value="EditUserDTO.NewPassword"
+                                              Variant="Variant.Outlined"
+                                              InputType="InputType.Password" />
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudTextField Label="Confirm New Password"
+                                              @bind-Value="EditUserDTO.ConfirmNewPassword"
+                                              Variant="Variant.Outlined"
+                                              InputType="InputType.Password" />
+                            </MudItem>
+
+                        </MudGrid>
+                    </MudPaper>
+                </MudForm>
+            </MudCardContent>
+        </MudCard>
+    </DialogContent>
+</MudDialog>
+</CascadingAuthenticationState>
+
+
+
+
+@code {
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    [Parameter] public string UserId { get; set; }
+
+    private EditMSCUserDTO EditUserDTO { get; set; } = new();
+    private List<LookupRoleDTO> roleList = new();
+    private IReadOnlyCollection<string> selectedRoleIds = Array.Empty<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _userManager.FindByIdAsync(UserId);
+        var roles = await LookupRolesService.GetAllOrderedAsync();
+        roleList = roles ?? new();
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+
+        EditUserDTO = new EditMSCUserDTO
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            Email = user.Email,
+            RoleIds = userRoles.ToHashSet(),
+            IsDisabled = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow
+        };
+
+        selectedRoleIds = EditUserDTO.RoleIds;
+    }
+
+    private void CloseDialog() => MudDialog.Close(DialogResult.Ok(true));
+
+    private async Task SaveUser()
+{
+    await _form.ValidateAsync();
+
+    var user = await _userManager.FindByIdAsync(EditUserDTO.Id);
+
+    user.UserName = EditUserDTO.UserName;
+    user.Email = EditUserDTO.Email;
+
+    await _userManager.UpdateAsync(user);
+
+    // Update roles
+    var currentRoles = await _userManager.GetRolesAsync(user);
+
+    // Remove roles not selected
+    foreach (var role in currentRoles)
+    {
+        if (!selectedRoleIds.Contains(role))
+            await _userManager.RemoveFromRoleAsync(user, role);
+    }
+
+    // Add new roles
+    foreach (var role in selectedRoleIds)
+    {
+        if (!currentRoles.Contains(role))
+            await _userManager.AddToRoleAsync(user, role);
+    }
+
+    // Disable user
+    if (EditUserDTO.IsDisabled)
+        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+    else
+        await _userManager.SetLockoutEndDateAsync(user, null);
+
+    // Password reset
+    if (!string.IsNullOrWhiteSpace(EditUserDTO.NewPassword))
+    {
+        if (EditUserDTO.NewPassword != EditUserDTO.ConfirmNewPassword)
+        {
+            Snackbar.Add("New passwords do not match", Severity.Error);
+            return;
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var resetResult = await _userManager.ResetPasswordAsync(user, token, EditUserDTO.NewPassword);
+
+        if (!resetResult.Succeeded)
+        {
+            foreach (var error in resetResult.Errors)
+                Snackbar.Add(error.Description, Severity.Error);
+            return;
+        }
+    }
+
+    Snackbar.Add("User updated successfully!", Severity.Success);
+    MudDialog?.Close(DialogResult.Ok(true));
+    NavigationManager.NavigateTo("/admindash");
+}
+
+}
+

@@ -1,0 +1,338 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Services
+@inject IDbContextFactory<TmscDbContext> DbFactory
+@inject IDbContextFactory<ApplicationDbContext> IdentityDb
+@inject NavigationManager NavigationManager
+@inject ILookupStatusService LookupStatusService
+@inject ILookupPriorityService LookupPriorityService
+@inject ISnackbar Snackbar
+
+<CascadingAuthenticationState>
+	<MudDialog>
+        <DialogContent>
+			@* @//Task Header@ *@
+        @if (_request == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body1">Loading request...</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.h5">@_request.RequestTitle</MudText>
+            <MudChip T="string" Color="Color.Info" Class="ml-2">@_request?.Status?.StatusName</MudChip>
+        }
+
+
+        @if (_request != null)
+        {
+			<MudPaper Class="pa-3 mb-4" Elevation="1">
+				<MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+
+					<MudText Typo="Typo.subtitle2"><b>Assigned Team:</b></MudText>
+						<MudChip T="string" Color="@(_request.TeamId == null ? Color.Dark : Color.Primary)" Variant="Variant.Filled">
+							@(_teamList.FirstOrDefault(t => t.TeamId == _request.TeamId)?.TeamNameShort ?? "Not Assigned")
+						</MudChip>
+
+					<MudText Typo="Typo.subtitle2"><b>Assigned User:</b></MudText>
+						<MudChip T="string" Color="@(string.IsNullOrWhiteSpace(_currentAssignedUser) ? Color.Dark : Color.Secondary)" Variant="Variant.Filled">
+							@(_currentAssignedUser ?? "Not Assigned")
+						</MudChip>
+
+					<MudText Typo="Typo.subtitle2"><b>Priority:</b></MudText>
+						<MudChip T="string" Color="@(_selectedPriorityId == null ? Color.Dark : Color.Info)" Variant="Variant.Filled">
+							@(_priorityList.FirstOrDefault(p => p.PriorityId == _selectedPriorityId)?.PriorityName ?? "Not Assigned")
+						</MudChip>
+
+				</MudStack>
+			</MudPaper>
+
+			@* //Task Content *@
+            <MudGrid>
+
+                <MudItem xs="12" md="8">
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Requester</MudText>
+                        <MudText><b>@_request.Rank</b> @_request.RequestFirstName @_request.RequestLastName</MudText>
+                        <MudText>@_request.RequestEmailAdd</MudText>
+                        <MudText>@_request.RequestContactPhone</MudText>
+                    </MudPaper>
+
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Task Details</MudText>
+                        <MudText><b>Title:</b> @_request.RequestTitle</MudText>
+
+                        <MudText Class="mt-2"><b>Description:</b></MudText>
+                        <MudText>@_request.RequestTaskDescription</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Update History</MudText>
+
+                        @if (_updateHistory.Any())
+                        {
+                            <MudList T="string" Dense="true" ReadOnly="true">
+                                @foreach (var update in _updateHistory)
+                                {
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body1">
+                                            @update.UpdateBy - <b>@update.UpdateTimeStamp</b> 
+                                        </MudText>										
+                                        <MudText Typo="Typo.body2">@update.UpdateDescription</MudText>
+										<MudDivider/>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                No updates available for this request.
+                            </MudText>
+                        }
+                    </MudPaper>
+
+                </MudItem>
+
+
+                <MudItem xs="12" md="4">
+
+                    <MudPaper Class="pa-4 mb-4" Style="@($"background:{Colors.BlueGray.Lighten2};")" Elevation="1">
+                        <MudText Typo="Typo.h6">Workflow</MudText>
+
+                        <MudSelect T="int?" Label="Status" @bind-Value="_request.StatusId" Variant="Variant.Outlined">
+                            @foreach (var s in _statusList)
+                            {
+                                <MudSelectItem T="int?" Value="@s.StatusId">
+                                    @s.StatusName
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+							<MudDivider DividerType="DividerType.Inset" />
+							<MudSelect T="int?" Label="Assign Team" @bind-Value="_request.TeamId" Variant="Variant.Outlined">
+								@foreach (var t in _teamList)
+								{
+									<MudSelectItem T="int?" Value="@t.TeamId">@t.TeamNameShort</MudSelectItem>
+								}
+							</MudSelect>
+							<MudSelect T="string" Label="Assign User" @bind-Value="_assignedUserId" Variant="Variant.Outlined">
+								@foreach (var u in _users)
+								{
+									<MudSelectItem T="string" Value="@u.Id">@u.UserName</MudSelectItem>
+								}
+							</MudSelect>
+							<MudDivider DividerType="DividerType.Inset" />
+							<MudSelect T="int?" Label="Priority" @bind-Value="_selectedPriorityId" Variant="Variant.Outlined">
+								@foreach (var p in _priorityList)
+								{
+									<MudSelectItem T="int?" Value="@p.PriorityId">
+										@p.PriorityName (@p.PriorityLevel)
+									</MudSelectItem>
+								}
+							</MudSelect>
+                    </MudPaper>
+				</MudItem>
+            </MudGrid>
+			<MudPaper Class="pa-4 mb-4" Elevation="1">
+				<MudText Typo="Typo.h6">Add Update:</MudText>
+
+				<MudTextField Label="Update Description"
+				Variant="Variant.Outlined"
+				Lines="5"
+				AutoGrow="true"
+				@bind-Value="_newUpdate" />
+			</MudPaper>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Text" OnClick="CloseDialog">
+            Close
+        </MudButton>
+
+        <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="UpdateRequest">
+            Save Changes
+        </MudButton>
+
+        <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="@(() => Console.WriteLine("Exterminate"))">
+            Delete
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+</CascadingAuthenticationState>
+
+
+
+@code {
+
+	private MudForm? _form;
+	private bool _isValid;
+	private string[] _errors = Array.Empty<string>();
+	private string? _currentAssignedUser;
+	private List<RequestUpdatesDTO> _updateHistory = new();
+	private List<LookupStatusDTO> _statusList = new();
+	private List<LookupTeamDTO> _teamList = new();
+	private List<LookupPriorityDTO> _priorityList = new();
+	private List<ApplicationUser> _users = new();
+
+	private string _newUpdate = string.Empty;
+	private string? _assignedUserId;
+	private int? _selectedPriorityId;
+
+	[CascadingParameter]
+	private Task<AuthenticationState> _authStateTask { get; set; } = default!;
+
+	[CascadingParameter]
+	IMudDialogInstance MudDialog { get; set; } = default!;
+
+	[Parameter]
+	public Guid requestTaskId { get; set; }
+
+	[SupplyParameterFromForm]
+	private Request? _request { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		var statues = await LookupStatusService.GetAllOrderedAsync();
+		_statusList = statues ?? new();
+
+		var priorities = await LookupPriorityService.GetAllOrderedAsync();
+		_priorityList = priorities ?? new();
+
+		await using var ctx = await DbFactory.CreateDbContextAsync();
+		_request = await ctx.Requests.Include(r => r.Status).FirstOrDefaultAsync(r => r.RequestTaskId == requestTaskId);
+
+		_teamList = await ctx.LookupTeams
+		.Select(t => new LookupTeamDTO
+			{
+				TeamId = t.TeamId,
+				TeamNameShort = t.TeamNameShort
+			}).ToListAsync();
+
+		_updateHistory = await (from ru in ctx.RequestUpdates
+								where ru.RequestTaskId == requestTaskId
+								orderby ru.UpdateTimeStamp descending
+								select new RequestUpdatesDTO
+								{
+									UpdateId = ru.UpdateId,
+									RequestTaskId = ru.RequestTaskId,
+									UpdateTimeStamp = ru.UpdateTimeStamp,
+									UpdateDescription = ru.UpdateDescription,
+									UpdateBy = ru.UpdateBy,
+									StatusName = ru.Status!.StatusName,
+                                    TeamNameShort = ru.Team!.TeamNameShort,
+                                    AssignedUserId = ru.AssignmentUserId,
+                                    PriorityId = ru.PriorityId
+								}).ToListAsync();
+
+		await using var identityCtx = await IdentityDb.CreateDbContextAsync();
+		foreach (var update in _updateHistory)
+		{
+			if (!string.IsNullOrWhiteSpace(update.AssignedUserId))
+			{
+				update.AssignedUserName = await identityCtx.Users
+				.Where(u => u.Id == update.AssignedUserId)
+				.Select(u => u.UserName)
+				.FirstOrDefaultAsync() ?? "Unknown User";
+			}
+		}
+
+		var latestupdate = _updateHistory.FirstOrDefault();
+		if(latestupdate != null)
+		{
+			_currentAssignedUser = latestupdate.AssignedUserName;
+			_selectedPriorityId = latestupdate.PriorityId;
+		}
+
+		await using var indentityCtx2 = await IdentityDb.CreateDbContextAsync();
+		_users = await indentityCtx2.Users.Select(u => new ApplicationUser
+			{
+				Id = u.Id,
+				UserName = u.UserName
+			}).ToListAsync();
+
+		if (_request == null)
+		{
+			NavigationManager.NavigateTo("notfound");
+		}
+	}
+
+	private bool RequestExists(Guid requestTaskId)
+	{
+		using var ctx = DbFactory.CreateDbContext();
+		return ctx.Requests.Any(r => r.RequestTaskId == requestTaskId);
+	}
+
+	private async Task UpdateRequest()
+	{
+		// Validate the form (use ValidateAsync instead of obsolete Validate)
+		if (_form != null)
+		{
+			await _form.ValidateAsync();
+			_isValid = _form.IsValid;
+			_errors = _form.Errors?.ToArray() ?? Array.Empty<string>();
+		}
+		else
+		{
+			_isValid = true;
+		}
+
+		if (!_isValid)
+			return;
+
+		var req = _request;
+		if (req == null)
+		{
+			NavigationManager.NavigateTo("notfound");
+			return;
+		}
+
+		using var ctx = DbFactory.CreateDbContext();
+		ctx.Attach(req).State = EntityState.Modified;
+
+		var authState = await _authStateTask;
+		var user = authState.User;
+
+		var auditLog = new RequestUpdate
+		{
+			UpdateId = Guid.NewGuid(),
+			RequestTaskId = req.RequestTaskId,
+			UpdateTimeStamp = DateTime.UtcNow,
+			UpdateDescription = _newUpdate,
+			StatusId = req.StatusId,
+			PriorityId = _selectedPriorityId,
+			UpdateBy = user.Identity?.Name
+		};
+
+		auditLog.AssignmentUserId = _assignedUserId;
+
+		ctx.RequestUpdates.Add(auditLog);
+
+		try
+		{
+			await ctx.SaveChangesAsync();
+			// Close the dialog after saving and navigate back to the list
+			NavigationManager.NavigateTo("/requests");
+			MudDialog?.Close(DialogResult.Ok(true));
+			Snackbar.Add("Request Updated", Severity.Success);
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			if (!RequestExists(req.RequestTaskId))
+			{
+				NavigationManager.NavigateTo("notfound");
+			}
+			else
+			{
+				throw;
+			}
+		}
+	}
+
+    private void CloseDialog() => MudDialog.Close(DialogResult.Ok(true));
+
+}

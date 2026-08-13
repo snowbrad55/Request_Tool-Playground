@@ -1,0 +1,98 @@
+﻿@inherits LayoutComponentBase;
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Style="@($"background:{Colors.Red.Darken4};")">
+        <MudIconButton  on="@Icons.Material.TwoTone.MoreVert" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudIcon Icon="@Icons.Material.TwoTone.ArrowBack"/>
+        <MudText>Click Here to start</MudText>
+        <MudSpacer/>
+        <AuthorizeView>
+            <NotAuthorized>
+                <MudButton StartIcon="@Icons.Material.TwoTone.Login" Href="Account/Login">Login</MudButton>
+            </NotAuthorized>
+            <Authorized>
+                <MudText>You are logged in as: <strong>@context.User.Identity?.Name</strong></MudText>
+                <MudItem Class="mud-nav-link-child px-5">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="" />
+                        <MudButton StartIcon="@Icons.Material.TwoTone.Logout" ButtonType="ButtonType.Submit"
+                                   Color="Color.Inherit">Log Out</MudButton> 
+                    </form>
+                </MudItem>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="1">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Select an Option</MudText>
+        </MudDrawerHeader>
+        <MudPaper Width="250px" Class="d-inline-flex py-10" Elevation="0">
+            <MudNavMenu>
+                <MudNavLink Icon="@Icons.Material.TwoTone.Home" Href="" Match="NavLinkMatch.All">Home</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.TwoTone.Book" Href="/catalogue" Match="NavLinkMatch.All">Create a Request</MudNavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <MudNavLink Icon="@Icons.Material.TwoTone.ViewList" Href="requests" Match="NavLinkMatch.All">View Task</MudNavLink>
+                        
+                    </Authorized>
+                </AuthorizeView>
+
+                <MudNavGroup Title="Account" Icon="@Icons.Material.TwoTone.AccountCircle" Expanded="false">
+                    <AuthorizeView>
+                        <Authorized>
+                            <MudNavLink Icon="@Icons.Material.TwoTone.ManageAccounts" Href="Account/Manage">Manage Account</MudNavLink>
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudNavLink Icon="@Icons.Material.TwoTone.Login" Href="Account/Login">Log in</MudNavLink>
+                            <MudNavLink Icon="@Icons.Material.TwoTone.Create" Href="Account/Register">Register</MudNavLink>
+						</NotAuthorized>
+                    </AuthorizeView>
+                </MudNavGroup>
+                    <MudDivider Class="my-2" />
+                    <MudNavGroup Icon="@Icons.Material.TwoTone.Settings" Title="Settings" Expanded="false">
+					    <MudSwitch @bind-Value="_isDarkMode" 
+                                    Color="Color.Primary" 
+                                    Class="ma-4" T="bool" 
+                                    Label="Toggle Dark Mode" />
+                    </MudNavGroup>
+                    <MudDivider Class="my-2" />
+                <AuthorizeView Roles="Administrator">
+                        <Authorized>
+                            <MudNavGroup Title="Management Functions" Icon="@Icons.Material.TwoTone.AdminPanelSettings" Expanded="false">
+                                <MudNavLink Icon="@Icons.Material.TwoTone.ManageAccounts" Href="admindash" Match="NavLinkMatch.All">User Management</MudNavLink>
+                                <MudNavLink Icon="@Icons.Material.TwoTone.ManageSearch" Href="requestdash" Match="NavLinkMatch.All">Tasks Dashboard</MudNavLink>
+                            </MudNavGroup>
+                        </Authorized>
+                    </AuthorizeView>
+            </MudNavMenu>
+        </MudPaper>
+    </MudDrawer>
+    <MudMainContent Class="pt-16 px-16">
+        <MudContainer Class="mt-6">
+                @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+
+    //Styling with dark mode!
+    private MudTheme _theme = new MudTheme();
+	private bool _isDarkMode = false;
+
+    private string? currentUrl;
+
+    //Simple boolean toggle for the navigation drawer.
+    private bool _drawerOpen = false;
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

@@ -1,0 +1,21 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+<MudPaper Class="pa-4" Elevation="0">
+    <RigRequestFieldEditor Label="MIDS"
+                           Field="Model.criticalLRI_Mids"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="RADAR"
+                           Field="Model.criticalLRI_Radar"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="GPS"
+                           Field="Model.criticalLRI_Gps"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Other"
+                           Field="Model.criticalLRI_Other"
+                           trafficLights="TrafficLights" />
+</MudPaper>
+@code {
+
+    [Parameter] public CriticalLRIs Model { get; set; } = default!;
+    [Parameter] public List<LookupTrafficLight> TrafficLights { get; set; } = new();
+}

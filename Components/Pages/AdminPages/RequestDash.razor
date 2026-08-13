@@ -1,0 +1,160 @@
+﻿@page "/requestdash"
+@using Microsoft.EntityFrameworkCore
+@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Models.DashBoard
+@inject IDbContextFactory<TyphoonTaskingTool.Data.TmscDbContext> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudPaper Class="pa-4">
+	<MudText Typo="Typo.h5">Request Dashboard</MudText>
+
+	@if(_statusLabels != null)
+	{
+        <MudGrid>
+            @foreach (var chart in _teamCharts)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.body2">@chart.TeamName - @chart.TeamNameLong</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudChart ChartType="ChartType.Donut"
+                                      ChartLabels="@chart.Labels"
+                                      ChartSeries="@chart.Data.AsChartDataSet()">
+                                <CustomGraphics>
+                                    <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@chart.Statuses.Count</text>
+                                    </CustomGraphics>
+                            </MudChart>
+                                      <MudExpansionPanels MultiExpansion="true">
+                                @foreach (var status in chart.Statuses)
+                                {
+                                    <MudExpansionPanel Text="@status.StatusName">
+                                        <MudText Typo="Typo.body1">@status.Count requests</MudText>
+                                    </MudExpansionPanel>
+                                }
+                            </MudExpansionPanels>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+            
+        </MudGrid>
+	}
+	else
+	{
+		<MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+	}
+	</MudPaper>
+
+    @code {
+
+    private TmscDbContext _context = default!;
+    private string[]? _statusLabels;
+    private double[]? _statusData;
+    private List<RequestsDTO> _requests = new();
+    private List<TeamStatChartModel> _teamCharts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequestData();
+        BuildStatusChartData();
+        BuildTeamChart();
+    }
+
+    private async Task LoadRequestData()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        _context = DbFactory.CreateDbContext();
+
+        if (user.Identity != null)
+        {
+            if (user.Identity.IsAuthenticated)
+            {
+                //this will need to be updated for managment use.
+                bool _isAdmin = user.IsInRole("Administrator");
+                var userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+                if (_isAdmin)
+                {
+                    _requests = await (from r in _context.Requests
+                                       join rk in _context.LookupRanks on r.RankId equals rk.RankId
+                                       join stat in _context.LookupStatuses on r.StatusId equals stat.StatusId
+                                       join team in _context.LookupTeams on r.TeamId equals team.TeamId
+                                       select new RequestsDTO
+                                           {
+                                               RequestTaskId = r.RequestTaskId,
+                                               RequestShortId = r.RequestShortId,
+                                               RequestCreated = r.RequestCreated,
+                                               RankId = rk.RankId,
+                                               RankShortName = rk.RankNameShort,
+                                               RequestFirstName = r.RequestFirstName,
+                                               RequestLastName = r.RequestLastName,
+                                               RequestEmailAdd = r.RequestEmailAdd,
+                                               RequestContactPhone = r.RequestContactPhone,
+                                               UnitId = r.UnitId,
+                                               TeamId = r.TeamId,
+                                               TeamNameShort = team.TeamNameShort,
+                                               TeamNameLong = team.TeamNameLong,
+                                               RequestTitle = r.RequestTitle,
+                                               RequestTaskDescription = r.RequestTaskDescription,
+                                               StatusName = stat.StatusName,
+                                               RequestArchive = r.RequestArchive
+                                           }).ToListAsync();
+                }
+            }
+        }
+    }
+
+    private void BuildStatusChartData()
+    {
+        if (_requests != null && _requests.Count > 0)
+        {
+            var statusGroups = _requests.GroupBy(r => r.StatusName)
+                                         .Select(g => new { Status = g.Key, Count = g.Count() })
+                                         .ToList();
+            _statusLabels = statusGroups.Select(s => s.Status).ToArray();
+            _statusData = statusGroups.Select(s => (double)s.Count).ToArray();
+        }
+    }
+
+    private void BuildTeamChart()
+    {
+
+        var groupedByTeam = _requests
+        .GroupBy(r => r.TeamId)
+        .OrderBy(g => g.Key);
+
+        foreach (var teamgroup in groupedByTeam)
+        {
+            var statusGroups = teamgroup.GroupBy(r => r.StatusName)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .OrderBy(x => x.Status)
+                .ToList();
+
+            var chart = new TeamStatChartModel
+            {
+                TeamName = teamgroup.First().TeamNameShort,
+                TeamNameLong = teamgroup.First().TeamNameLong,
+                Labels = statusGroups.Select(s => s.Status).ToArray(),
+                Data = statusGroups.Select(s => (double)s.Count).ToArray()
+            };
+
+            chart.Statuses = statusGroups
+            .Select(s => new StatusBreakdown
+            {
+                StatusName = s.Status,
+                Count = s.Count
+            })
+            .ToList();
+
+            _teamCharts.Add(chart);
+
+        }
+    }
+
+
+
+    }

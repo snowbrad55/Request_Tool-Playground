@@ -1,0 +1,39 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h6">Rig Request Form</MudText>
+    <MudDivider Class="my-2" />
+    <MudForm>
+        <MudTextField Variant="Variant.Outlined" @bind-Value="Model.rigRequestTitle" Label="Trial Title" Required="true" />
+        <MudTextField Variant="Variant.Outlined" @bind-Value="Model.rigRequestDescription" Label="Trail Description" Required="true" />
+        <MudTextField Variant="Variant.Outlined" @bind-Value="Model.rigRequestName" Label="Requester Name" Required="true" />
+        <MudDateRangePicker
+            @bind-DateRange="dateRange"
+            Label="Required Date(s)"
+            PlaceholderStart="Start Date"
+            PlaceholderEnd="End Date"
+            Variant="Variant.Outlined"
+            PickerVariant="PickerVariant.Dialog"
+            Margin="Margin.Dense"
+            Required="true"
+            DataRangeChanged="OnDateRangeChanged"/>
+        <MudTextField Variant="Variant.Outlined" @bind-Value="Model.rigRequestTitle" Label="Additional Notes" Lines="7" />
+        <MudText Typo="Typo.body2">All requests to use the WSSR are to be accomanied with a Change Configuration Board Request. 
+            By ticking the below you are confirming that this has been completed and submitted to the Ty MSC Management team for action.</MudText>
+        <MudCheckBox @bind-Value="Model.rigCcbCompelte" Label="Has a CCB been completed?" />
+        <MudText Typo="Typo.body2">Please enter the date and reference of the CCB submission</MudText>
+        <MudDatePicker/>
+        <MudTextField Variant="Variant.Outlined" Label="CCB Reference" @bind-Value="Model.rigCcbRefernce"/>
+    </MudForm>
+</MudPaper>
+@code {
+
+    [Parameter] public RigRequest Model { get; set; } = default!;
+    private DateRange dateRange = new();
+
+    private void OnDateRangeChanged(DateRange newRange)
+    {
+        Model.rigRequestStartDate = newRange.Start ?? DateTime.Today;
+        Model.rigRequestEndDate = newRange.End ?? Model.rigRequestStartDate; ;
+    }
+}

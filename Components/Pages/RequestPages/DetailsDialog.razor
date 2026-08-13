@@ -1,0 +1,138 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Models
+@inject IDbContextFactory<TmscDbContext> DbFactory
+@inherits OwningComponentBase<TmscDbContext>
+
+<MudDialog>
+    <DialogContent>
+
+        @if (_request == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body1">Loading request details...</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.h5">@_request.RequestTitle</MudText>
+            <MudChip T="string" Color="@GetStatusColor(_request.Status?.StatusName)" Class="ml-2">@_request.Status</MudChip>
+        }
+
+        @if (_request != null)
+        {
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Requester</MudText>
+                        <MudText><b>@_request.Rank </b> @_request.RequestFirstName @_request.RequestLastName</MudText>
+                        <MudText>@_request.RequestEmailAdd</MudText>
+                        <MudText>@_request.RequestContactPhone</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Task Details</MudText>
+                        <MudText><b>Title:</b> @_request.RequestTitle</MudText>
+                        <MudText Class="mt-2"><b>Description:</b></MudText>
+                        <MudText>@_request.RequestTaskDescription</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Update History</MudText>
+
+                        @if (_viewUpdates.Any())
+                        {
+                            <MudList T="RequestUpdatesDTO" Dense="true">
+                                @foreach (var update in _viewUpdates)
+                                {
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body1">
+                                            <b>@update.UpdateTimeStamp:g</b> — @update.UpdateBy
+                                        </MudText>
+                                        <MudText Typo="Typo.body2">@update.UpdateDescription</MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                No updates available for this request.
+                            </MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Metadata</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem><b>Task Number:</b> @_request.RequestShortId</MudListItem>
+                            <MudListItem><b>Created:</b> @_request.RequestCreated</MudListItem>
+                            <MudListItem><b>Unit:</b> @_request.UnitId</MudListItem>
+                            <MudListItem><b>Team:</b> @_request.TeamId</MudListItem>
+                        </MudList>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6">Status</MudText>
+                        <MudChip T="string" Color="Color.Primary">@_request.Status?.StatusName</MudChip>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseDialog">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid RequestTaskId { get; set; }
+
+    private Request? _request;
+    private List<RequestUpdatesDTO> _viewUpdates = new();
+
+    Color GetStatusColor(string? status)
+    {
+        return status switch
+        {
+            "Submitted" => Color.Info,
+            "Active" => Color.Success,
+            "Completed" => Color.Primary,
+            "On Hold" => Color.Info,
+            "Cancelled" => Color.Error,
+            "In Progress" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _request = await ctx.Requests
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.RequestTaskId == RequestTaskId);
+
+        _viewUpdates = await (from vu in ctx.RequestUpdates
+                              where vu.RequestTaskId == RequestTaskId
+                              orderby vu.UpdateTimeStamp descending
+                              select new RequestUpdatesDTO
+                              {
+                                  UpdateId = vu.UpdateId,
+                                  RequestTaskId = vu.RequestTaskId,
+                                  UpdateTimeStamp = vu.UpdateTimeStamp,
+                                  UpdateDescription = vu.UpdateDescription,
+                                  UpdateBy = vu.UpdateBy,
+                                  StatusName = vu.Status.StatusName
+                                  
+                              }).ToListAsync();
+    }
+
+    private void CloseDialog() => MudDialog.Close(DialogResult.Ok(true));
+}

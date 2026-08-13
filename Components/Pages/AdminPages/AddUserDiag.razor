@@ -1,0 +1,178 @@
+﻿@using Microsoft.AspNetCore.Components;
+@using Microsoft.AspNetCore.Identity;
+@using MudBlazor;
+@using TyphoonTaskingTool.DTOs;
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Services;
+@inject ISnackbar Snackbar;
+@inject NavigationManager NavigationManager;
+@inject ILookupRolesService LookupRolesService;
+@inject UserManager<ApplicationUser> _userManager;
+
+<CascadingAuthenticationState>
+    <MudDialog>
+        <DialogContent>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Add New User</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" OnClick="CloseDialog" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Save" Color="Color.Inherit" OnClick="SaveUser" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudForm @ref="_form" Model="@AddUserDTO">
+                        <MudPaper Class="pa-4 mb-4" Elevation="1">
+                            <MudText Typo="Typo.h6">Enter User Details</MudText>
+                            <MudGrid>
+                                <MudItem xs="4" sm="4">
+                                    <MudTextField Label="User Name" @bind-Value="AddUserDTO.UserName" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="4" sm="4">
+                                    <MudTextField Label="Email" @bind-Value="AddUserDTO.Email" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="4" sm="4">
+                                    <MudSelect T="string"
+                                               MultiSelection="true"
+                                               @bind-SelectedValues="selectedRoleIds"
+                                               Label="Role"
+                                               Variant="Variant.Outlined"
+                                               ToStringFunc="@(id => roleList.FirstOrDefault(r => r.RoleId == id)?.RoleName)">
+                                        @if (roleList != null)
+                                        {
+                                            @foreach (LookupRoleDTO i in roleList)
+                                            {
+                                                <MudSelectItem T="string" Value="@i.RoleId">@i.RoleName</MudSelectItem>
+                                            }
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="4" sm="4">
+                                    <MudTextField Label="Password" @bind-Value="AddUserDTO.Password" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                    <MudProgressLinear Value="@passwordScore" Striped="true"
+                                        Color="@GetStrengthColour()"
+                                        Class="mt-2"
+                                        Size="Size.Medium"/>
+                                </MudItem>
+                                <MudItem xs="4" sm="4">
+                                    <MudTextField Label="Confirm Password" @bind-Value="AddUserDTO.ConfirmPassword" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudForm>
+                </MudCardContent>
+            </MudCard>
+        </DialogContent>
+    </MudDialog>
+</CascadingAuthenticationState>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    private AddMSCUserDTO AddUserDTO { get; set; } = new();
+    private List<LookupRoleDTO> roleList = new();
+
+    private IReadOnlyCollection<string> selectedRoleIds { get; set; } = Array.Empty<string>();
+
+    private int passwordScore = 0;
+    private string passwordStrengthText = "Weak";
+
+    private void EvalPasswordStrength(string? password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            passwordScore = 0;
+            passwordStrengthText = "Weak";
+            return;
+        }
+
+        int score = 0;
+
+        if(password.Length >= 6) score += 20;
+        if (password.Length >= 10) score += 20;
+        if (password.Any(char.IsUpper)) score += 20;
+        if (password.Any(char.IsLower)) score += 10;
+        if (password.Any(char.IsDigit)) score += 10;
+        if (password.Any(ch => "!@#$%^&*()_+-=[]{}|;:'\",.<>/?".Contains(ch))) score += 20;
+
+        passwordScore = score;
+
+        passwordStrengthText = score switch
+        {
+            >= 80 => "Very Strong",
+            >= 60 => "Very Strong",
+            >= 40 => "Very Strong",
+            >= 20 => "Very Strong",
+            _ => "Very Strong",
+        };
+    }
+
+    private Color GetStrengthColour()
+    {
+        return passwordScore switch
+        {
+            >= 80 => Color.Success,
+            >= 40 => Color.Info,
+            >= 20 => Color.Warning,
+            _ => Color.Error,
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var roles = await LookupRolesService.GetAllOrderedAsync();
+        roleList = roles ?? new();
+	}
+
+    private void CloseDialog() => MudDialog.Close(DialogResult.Ok(true));
+
+    private async Task SaveUser()
+    {
+        await _form.ValidateAsync();
+
+        if (AddUserDTO.Password != AddUserDTO.ConfirmPassword)
+        {
+            Snackbar.Add("Passwords do not match!", Severity.Error);
+            return;
+        }
+
+        // sync selected values into the DTO (DTO.RoleIds is a HashSet<string> in your current code)
+        AddUserDTO.RoleIds = selectedRoleIds?.ToHashSet() ?? new HashSet<string>();
+
+        var user = new ApplicationUser
+        {
+            UserName = AddUserDTO.UserName,
+            Email = AddUserDTO.Email,
+        };
+
+        var result = await _userManager.CreateAsync(user, AddUserDTO.Password);
+
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+                Snackbar.Add(error.Description, Severity.Error);
+            return;
+        }
+
+        foreach (var roleId in AddUserDTO.RoleIds)
+        {
+            var role = roleList.FirstOrDefault(r => r.RoleId == roleId);
+
+            if (role == null)
+            {
+                Snackbar.Add($"Role with ID {roleId} not found.", Severity.Error);
+                continue;
+            }
+            await _userManager.AddToRoleAsync(user, role.RoleName);
+        }
+
+        Snackbar.Add("User added successfully!", Severity.Success);
+        MudDialog?.Close(DialogResult.Ok(true));
+        NavigationManager.NavigateTo("/admindash");
+    }
+
+}

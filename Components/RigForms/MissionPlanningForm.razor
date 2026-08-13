@@ -1,0 +1,26 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+<MudPaper Class="pa-4" Elevation="0">
+    <RigRequestFieldEditor Label="Mission Type"
+                            Field="Model.missionPlanning_MissionType"
+                            trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Mission Map Requirement"
+                           Field="Model.missionPlanning_Maps"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Mission L16 Network"
+                           Field="Model.missionPlanning_L16_Ntwk"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Mission L16 IDS"
+                           Field="Model.missionPlanning_L16_IDS"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Mission Geo Location"
+                           Field="Model.MissionPlanning_Geo_Location"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Mission SS Mission File"
+                           Field="Model.missionPlanning_Ss_Mission_File"
+                           trafficLights="TrafficLights" />
+</MudPaper>
+@code {
+    [Parameter] public MissionPlanning Model { get; set; } = default!;
+    [Parameter] public List<LookupTrafficLight> TrafficLights { get; set; } = new();
+}

@@ -1,0 +1,70 @@
+﻿@inject IDialogService dialogService
+<MudDialog Class="blur dialog-background" TitleClass="blur dialog-background-title" ContentClass="dialog-background-surface">
+    <DialogContent>
+        <MudTabs PanelClass="dialog-size" Position="Position.Top" ApplyEffectsToContainer="true" Rounded="true" Elevation="2">
+            <MudTabPanel Text="Rig Request Details">
+                <RigRequestForm Model="Model.rigRequest"/>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Rig Setup">
+                <RigSetupForm Model="Model.rigSetup" TrafficLights="trafficLights"/>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Critical LRIs">
+                <CriticalLRIsForm Model="Model.criticalLRIs" TrafficLights="trafficLights" />
+            </MudTabPanel>
+
+            <MudTabPanel Text="Data Recording">
+                <DataRecordForm Model="Model.dataRecording" TrafficLights="trafficLights" />
+            </MudTabPanel>
+
+            <MudTabPanel Text="Additional Systems">
+                <AddSysForm Model="Model.additionalSystems" TrafficLights="trafficLights" />
+            </MudTabPanel>
+
+            <MudTabPanel Text="Multi Mission Requirements">
+
+            </MudTabPanel>
+
+            <MudTabPanel Text="Single Mission Requirements">
+
+            </MudTabPanel>
+
+            <MudTabPanel Text="Mission Planning Requirements">
+                <MissionPlanningForm Model="Model.missionPlanning" TrafficLights="trafficLights" />
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+            <MudButton OnClick="onSubmit" Color="Color.Primary">Submit Request</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .blur{
+    backdrop-filter:blur(10px);
+    }
+
+    .dialog-size{
+        width:auto;
+        height: 500px;
+        max-width:100%;
+        max-height: 100%;
+        overflow-y:auto;
+        overflow-x:hidden;
+    }
+
+    .dialog-background{
+        background-color:darkred;
+    }
+    .dialog-background-title{
+        background-color:darkred;
+        color: aliceblue;
+    }
+    .dialog-background-surface{
+        background: rgba(var(--mud-palette-surface-rgb),0.75);
+    }
+
+</style>
+
+            

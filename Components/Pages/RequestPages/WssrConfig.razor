@@ -1,0 +1,230 @@
+﻿@page "/wssr-config"
+@using MudBlazor
+
+<MudPaper Class="pa-4">
+
+    <MudGrid>
+        <!-- LEFT SIDE: TABLES -->
+        <MudExpansionPanels Elevation="0">
+
+            <MudExpansionPanel Text="Trial Info">
+                <MudCard>
+                    <MudCardContent>
+                        <MudSelect Label="Trial Name" @bind-Value="TrialName">
+                            @foreach (var item in TrialNames)
+                            {
+                                <MudSelectItem Value="@item">@item</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect Label="Trial Dates" @bind-Value="TrialDates">
+                            @foreach (var item in TrialDateOptions)
+                            {
+                                <MudSelectItem Value="@item">@item</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect Label="Config Ref" @bind-Value="ConfigRef">
+                            @foreach (var item in ConfigRefs)
+                            {
+                                <MudSelectItem Value="@item">@item</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudCardContent>
+                </MudCard>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="Rig Setup">
+                <MudCard>
+                    <MudCardContent>
+                        @foreach (var field in RigSetupFields)
+                        {
+                            <MudSelect Label="@field" @bind-Value="RigSetupSelections[field]">
+                                @foreach (var opt in DropdownOptions)
+                                {
+                                    <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="Critical LRIs">
+                <MudCard>
+                    <MudCardContent>
+                        @foreach (var field in CriticalLriFields)
+                        {
+                            <MudSelect Label="@field" @bind-Value="CriticalLriSelections[field]">
+                                @foreach (var opt in DropdownOptions)
+                                {
+                                    <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="Additional Systems">
+                <MudCard>
+                    <MudCardContent>
+                        @foreach (var field in AdditionalSystems)
+                        {
+                            <MudSelect Label="@field" @bind-Value="AdditionalSystemSelections[field]">
+                                @foreach (var opt in DropdownOptions)
+                                {
+                                    <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="Data Recording">
+                <MudCard>
+                    <MudCardContent>
+                        @foreach (var field in DataRecordingFields)
+                        {
+                            <MudSelect Label="@field" @bind-Value="DataRecordingSelections[field]">
+                                @foreach (var opt in DropdownOptions)
+                                {
+                                    <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudExpansionPanel>
+
+        </MudExpansionPanels>
+
+
+
+        <!-- RIGHT SIDE: AIRCRAFT IMAGE WITH STN DROPDOWNS -->
+        <MudItem xs="12" md="8">
+            <div style="position: relative; width: 100%;">
+
+                <img src="images\Ty_2.jpg" style="width: 100%; height: auto;" />
+
+@foreach (var stn in StationPositions)
+{
+    <div style="
+        position: absolute;
+        top:@stn.Value.Top;
+        left:@stn.Value.Left;
+        width:80px;">
+
+        <MudMenu AnchorOrigin="Origin.BottomCenter"
+                 TransformOrigin="Origin.TopCenter">
+
+            <ActivatorContent>
+                <MudChip T="string"
+                    Color="Color.Primary"
+                         Variant="Variant.Filled"
+                         Class="stn-chip"
+                         OnClick="@context.ToggleAsync">
+                                    @(StationSelections[stn.Key] == "" ? stn.Key : StationSelections[stn.Key])
+
+                </MudChip>
+            </ActivatorContent>
+
+            <ChildContent>
+                @foreach (var opt in StationOptions)
+                {
+                    <MudMenuItem OnClick="@(() => StationSelections[stn.Key] = opt)">
+                        @opt
+                    </MudMenuItem>
+                }
+            </ChildContent>
+
+        </MudMenu>
+
+    </div>
+}
+ 
+
+            </div>
+        </MudItem>
+    </MudGrid>
+
+</MudPaper>
+
+@code {
+
+    // Trial Info
+    string TrialName;
+    string TrialDates;
+    string ConfigRef;
+
+    List<string> TrialNames = ["Trial A", "Trial B", "Trial C"];
+    List<string> TrialDateOptions = ["Aug 2025", "Sep 2025", "Oct 2025"];
+    List<string> ConfigRefs = ["v0.1", "v0.2", "v1.0"];
+
+    // Generic dropdown options
+    List<string> DropdownOptions = ["Essential", "Highly Desirable", "Desirable", "Not Required"];
+
+    // Rig Setup
+    List<string> RigSetupFields = ["Patching", "Avionics Standard", "Radar Software", "Geographic Location"];
+    Dictionary<string, string> RigSetupSelections = new();
+
+    // Critical LRIs
+    List<string> CriticalLriFields = ["MIDS", "Radar", "GPS", "Other"];
+    Dictionary<string, string> CriticalLriSelections = new();
+
+    // Additional Systems
+    List<string> AdditionalSystems = [
+        "MIDS Tiger", "PASIS", "Meteor Emulator", "ASRAAM Emulator",
+        "SS Emulator", "B2 Emulator", "LDP"
+    ];
+    Dictionary<string, string> AdditionalSystemSelections = new();
+
+    // Data Recording
+    List<string> DataRecordingFields = [
+        "Recording 1", "Recording 2", "Recording 3",
+        "Recording 4", "Recording 5", "Recording 6",
+        "MHDD Video", "Additional"
+    ];
+    Dictionary<string, string> DataRecordingSelections = new();
+
+    // STN Dropdowns
+    List<string> StationOptions = ["Loaded", "Empty", "Simulated", "Disabled"];
+
+    Dictionary<string, string> StationSelections = new();
+
+    // Absolute positions for each STN marker
+    Dictionary<string, (string Top, string Left)> StationPositions = new()
+{
+    ["STN 1"] = ("72.00%", "0%"),
+    ["STN 2"] = ("72.00%", "87.87%"),
+
+    ["STN 3"] = ("66.63%", "10.19%"),
+    ["STN 4"] = ("66.63%", "77.89%"),
+
+    ["STN 5"] = ("61.61%", "18.71%"),
+    ["STN 6"] = ("61.61%", "69.71%"),
+
+    ["STN 7"] = ("57.23%", "24.90%"),
+    ["STN 8"] = ("57.23%", "62.23%"),
+
+    ["STN 9"] = ("42.13%", "33.19%"),
+    ["STN 10"] = ("42.13%", "54.35%"),
+
+    ["STN 11"] = ("75.23%", "33.19%"),
+    ["STN 12"] = ("75.23%", "54.35%"),
+
+    ["STN 13"] = ("57.23%", "43.77%")
+};
+
+protected override void OnInitialized()
+{
+    RigSetupSelections = RigSetupFields.ToDictionary(f => f, f => "");
+    CriticalLriSelections = CriticalLriFields.ToDictionary(f => f, f => "");
+    AdditionalSystemSelections = AdditionalSystems.ToDictionary(f => f, f => "");
+    DataRecordingSelections = DataRecordingFields.ToDictionary(f => f, f => "");
+    StationSelections = StationPositions.Keys.ToDictionary(k => k, k => "");
+}
+
+
+}

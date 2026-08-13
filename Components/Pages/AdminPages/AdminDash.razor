@@ -1,0 +1,57 @@
+﻿@page "/admindash"
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Models
+
+@inject UserManager<ApplicationUser> _userManager
+@inject RoleManager<IdentityRole> _roleManager
+@inject AuthenticationStateProvider AuthenricationStateProvider
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h3">ADMINISTRATORS DASHBOARD</MudText>
+
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.IsInRole("Administrator"))
+        {
+            <MudText Typo="Typo.body2">
+                Use this dashboard to manage users, teams, and application configuration.
+            </MudText>
+
+            <MudTabs 
+                Elevation="2" 
+                Rounded="true" 
+                Centered="true" 
+                TabPanelsClass="pa-6" 
+                ActiveTabClass="border-solid border-2 mud-border-primary">
+
+                <MudTabPanel Text="User Management">
+                    <UserDash />
+                </MudTabPanel>
+
+
+                <MudTabPanel Text="Team Management">
+                    <TeamDash />
+                </MudTabPanel>
+
+
+                <MudTabPanel Text="System Settings">
+                    <MudText Typo="Typo.body1">System settings will go here.</MudText>
+                </MudTabPanel>
+            </MudTabs>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">You do not have permission to view this page.</MudText>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <MudText Typo="Typo.body2">You are not logged in!</MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+}

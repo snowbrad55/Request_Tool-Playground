@@ -1,0 +1,28 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+
+<MudPaper Class="pa-4" Elevation="0">
+        <MudText Typo="Typo.h6">Rig Setup Form</MudText>
+        <MudDivider Class="my-2" />
+
+        <RigRequestFieldEditor Label="Rig Setup Type"
+                                Field="Model.rigSetup_Avionic_Std"
+                           trafficLights="TrafficLights" />
+        <RigRequestFieldEditor Label="Patching"
+                           Field="Model.rigSetup_Patching"
+                           trafficLights="TrafficLights"/>
+        <RigRequestFieldEditor Label="RADAR Software"
+                           Field="Model.rigSetup_Radar_Software"
+                           trafficLights="TrafficLights" />
+        <RigRequestFieldEditor Label="Geo Location"
+                                Field="Model.rigSetup_Geo_Location"
+                           trafficLights="TrafficLights" />
+
+</MudPaper>
+
+@code {
+    [Parameter] public RigSetup Model { get; set; } = default!;
+    [Parameter] public List<LookupTrafficLight> TrafficLights { get; set; } = new();
+
+
+}

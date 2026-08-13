@@ -1,0 +1,106 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbContext
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">User Management</MudText>
+    <MudText Typo="Typo.body2">Use this area to add, amend or remove a Ty MSC user.</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="AddUser">
+        Add New User
+    </MudButton>
+
+    <MudTable Items="_users" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>User Name</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Roles</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="u">
+            <MudTd>@u.UserName</MudTd>
+            <MudTd>@u.Email</MudTd>
+            <MudTd>@(u.roles.Any() ? string.Join(", ", u.roles) : "No Role Assigned")</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Info">
+                    View User
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                           OnClick="@(() => EditUser(u.Id))">
+                    Edit User
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<UserWithRole> _users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _users.Clear();
+
+        using var ctx = DbContext.CreateDbContext();
+        var allUsers = await ctx.Users.ToListAsync();
+
+        foreach (var user in allUsers)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+
+            _users.Add(new UserWithRole
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                roles = roles.ToList()
+            });
+        }
+    }
+
+    private async Task AddUser()
+    {
+        var options = new DialogOptions
+        {
+            BackgroundClass = "blur-on-diag-open",
+            CloseButton = false,
+            MaxWidth = MaxWidth.Large
+        };
+
+        await DialogService.ShowAsync<AddUserDiag>("Add User", new DialogParameters(), options);
+
+        await LoadUsers(); // Refresh after dialog closes
+    }
+
+    private async Task EditUser(string userId)
+    {
+        var parameters = new DialogParameters
+        {
+            { "UserId", userId }
+        };
+
+        var options = new DialogOptions
+        {
+            BackgroundClass = "blur-on-diag-open",
+            CloseButton = false,
+            MaxWidth = MaxWidth.Large
+        };
+
+        await DialogService.ShowAsync<EditUserDialog>("Edit User", parameters, options);
+
+        await LoadUsers(); // Refresh after dialog closes
+    }
+}

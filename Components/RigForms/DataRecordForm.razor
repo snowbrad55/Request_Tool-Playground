@@ -1,0 +1,30 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+<MudPaper Class="pa-4" Elevation="0">
+    <RigRequestFieldEditor Label="Recording 1"
+                           Field="Model.recording_1"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Recording 2"
+                           Field="Model.recording_2"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Recording 3"
+                           Field="Model.recording_3"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Recording 4"
+                           Field="Model.recording_4"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Recording 5"
+                           Field="Model.recording_5"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Recording 6"
+                           Field="Model.recording_6"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="MHDD"
+                           Field="Model.mhdd"
+                           trafficLights="TrafficLights" />
+</MudPaper>
+@code {
+
+    [Parameter] public DataRecording Model { get; set; } = default!;
+    [Parameter] public List<LookupTrafficLight> TrafficLights { get; set; } = new();
+}

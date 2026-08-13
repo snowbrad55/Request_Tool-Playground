@@ -1,0 +1,150 @@
+﻿@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Services
+@inject ILookupTeamService LookupTeamService
+@inject ILookupUnitService LookupUnitService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">Team Management</MudText>
+    <MudText Typo="Typo.body2">Use this area to add, amend or remove a Ty MSC team.</MudText>
+
+
+    <MudTable Items="_teams" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Team ID</MudTh>
+            <MudTh>Long Name</MudTh>
+            <MudTh>Short Name</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="team">
+            <MudTd>@team.TeamId</MudTd>
+            <MudTd>@team.TeamNameLong</MudTd>
+            <MudTd>@team.TeamNameShort</MudTd>
+            <MudTd>
+                <MudButton Color="Color.Warning" Variant="Variant.Filled"
+                           OnClick="@(() => OpenEditDialog(team))">
+                    Edit Team
+                </MudButton>
+
+                <MudButton Color="Color.Error" Variant="Variant.Filled"
+                           OnClick="@(() => DeleteTeam(team.TeamId))">
+                    Delete Team
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OpenAddDialog">
+        Add Team
+    </MudButton>
+</MudPaper>
+<MudPaper Class="pa-4">
+        <MudText Typo="Typo.h5">Unit Management</MudText>
+        <MudText Typo="Typo.body2">Use this area to add, amend or remove an external unit.</MudText>
+
+        <MudTable Items="_units" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Unit ID</MudTh>
+            <MudTh>Long Name</MudTh>
+            <MudTh>Short Name</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="unit">
+            <MudTd>@unit.UnitId</MudTd>
+            <MudTd>@unit.UnitNameLong</MudTd>
+            <MudTd>@unit.UnitNameShort</MudTd>
+            <MudTd>
+                <MudButton Color="Color.Warning" Variant="Variant.Filled"
+                           >
+                    Edit Unit
+                </MudButton>
+
+                <MudButton Color="Color.Error" Variant="Variant.Filled"
+                           >
+                    Delete Unit
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+        <MudButton Variant="Variant.Filled" Color="Color.Success">
+        Add Unit
+    </MudButton>
+</MudPaper>
+
+@code {
+    private List<LookupTeamDTO> _teams = new();
+    private List<LookupUnitDTO> _units = new();
+    private LookupTeamDTO _model = new();
+    private bool _dialogOpen;
+    private string _dialogTitle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeams();
+    }
+
+    private async Task LoadTeams()
+    {
+        _teams = await LookupTeamService.GetAllOrderedAsync();
+        _units = await LookupUnitService.GetAllOrderedAsync();
+    }
+
+    private void OpenAddDialog()
+    {
+        _model = new LookupTeamDTO();
+        _dialogTitle = "Add Team";
+        _dialogOpen = true;
+    }
+
+    private void OpenEditDialog(LookupTeamDTO dto)
+    {
+        _model = new LookupTeamDTO
+        {
+            TeamId = dto.TeamId,
+            TeamNameLong = dto.TeamNameLong,
+            TeamNameShort = dto.TeamNameShort
+        };
+
+        _dialogTitle = "Edit Team";
+        _dialogOpen = true;
+    }
+
+    private async Task Save()
+    {
+        bool exists = _teams.Any(t => t.TeamId == _model.TeamId);
+        bool result = exists
+            ? await LookupTeamService.UpdateAsync(_model)
+            : await LookupTeamService.AddAsync(_model);
+
+        if (result)
+        {
+            Snackbar.Add("Saved successfully", Severity.Success);
+            await LoadTeams();
+        }
+        else
+        {
+            Snackbar.Add("Save failed", Severity.Error);
+        }
+
+        _dialogOpen = false;
+    }
+
+    private async Task DeleteTeam(int id)
+    {
+        bool result = await LookupTeamService.DeleteAsync(id);
+
+        if (result)
+        {
+            Snackbar.Add("Team deleted", Severity.Success);
+            await LoadTeams();
+        }
+        else
+        {
+            Snackbar.Add("Delete failed", Severity.Error);
+        }
+    }
+
+    private void CloseDialog() => _dialogOpen = false;
+}

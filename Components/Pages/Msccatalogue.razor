@@ -1,0 +1,23 @@
+﻿@page "/catalogue"
+
+<PageTitle>MSC Catalogue Request</PageTitle>
+
+<h3>Catalogue Items</h3>
+
+<MudPaper>
+	<MudGrid>
+		@foreach (var item in CataCardItems)
+		{
+			<MudItem>
+				<Catacard 
+					title="@item.title" 
+					imagePath="@item.imagePath" 
+					description="@item.description" 
+					warning="@item.warning" 
+					DialogComponent="@item.DialogComponent"
+				/>
+			</MudItem>
+		}
+	</MudGrid>
+</MudPaper>
+

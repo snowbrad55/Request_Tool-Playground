@@ -1,0 +1,19 @@
+﻿@inherits LayoutComponentBase
+@layout TyphoonTaskingTool.Components.Layout.MainLayout
+
+<MudPaper>
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12">
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.h2">Manage Your Account</MudText>
+            </MudStack>
+        </MudItem>
+        <MudItem xs="6">
+            <ManageNavMenu/>
+        </MudItem>
+        <MudItem xs="6">
+            @Body
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+

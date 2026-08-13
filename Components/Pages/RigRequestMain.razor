@@ -1,0 +1,44 @@
+﻿@page "/platformconfig"
+@using TyphoonTaskingTool.Components.RigForms
+
+<h1>Request WSSR </h1>
+
+<MudTabs Position="Position.Bottom" ApplyEffectsToContainer="true" Rounded="true" Elevation="2">
+    <MudTabPanel Text="Rig Request Details">
+        
+    </MudTabPanel>
+
+    <MudTabPanel Text="Rig Setup">
+
+    </MudTabPanel>
+
+    <MudTabPanel Text="Critical LRIs">
+        <CriticalLRIsForm Model="Model.criticalLRIs" TrafficLights="trafficLights"/>
+    </MudTabPanel>    
+
+    <MudTabPanel Text="Data Recording">
+        <DataRecordForm Model="Model.dataRecording" TrafficLights="trafficLights" />
+    </MudTabPanel>   
+
+    <MudTabPanel Text="Additional Systems">
+        <AddSysForm Model="Model.additionalSystems" TrafficLights="trafficLights" />
+    </MudTabPanel>   
+
+    <MudTabPanel Text="Multi Mission Requirements">
+
+    </MudTabPanel>   
+
+    <MudTabPanel Text="Single Mission Requirements">
+
+    </MudTabPanel>
+
+    <MudTabPanel Text="Mission Planning Requirements">
+        <MissionPlanningForm Model="Model.missionPlanning" TrafficLights="trafficLights"/>
+    </MudTabPanel>
+
+</MudTabs>
+<MudStack Row="true" Spacing="2">
+    <MudButton OnClick="onSubmit" Color="Color.Primary">Submit Request</MudButton>
+</MudStack>
+
+

@@ -1,0 +1,149 @@
+﻿@page "/requests"
+@using Microsoft.EntityFrameworkCore
+@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Data
+@using TyphoonTaskingTool.Services
+@inject IRequestService RequestService
+@inject IDbContextFactory<TmscDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDialogService DialogService
+
+<PageTitle>Requests</PageTitle>
+
+<MudPaper>
+    <MudText Typo="Typo.h6">List of Requests</MudText>
+</MudPaper>
+
+<MudTable Items="_filteredRequests" Hover="true" Dense="true" Elevation="1">
+    <HeaderContent>
+        <MudTh>Requester</MudTh>
+        <MudTh>Contact</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd>
+            <MudText><b>@context.RankShortName</b> @context.RequestFirstName @context.RequestLastName</MudText>
+        </MudTd>
+
+        <MudTd>
+            <MudText>@context.RequestEmailAdd</MudText>
+            <MudText>@context.RequestContactPhone</MudText>
+        </MudTd>
+
+        <MudTd>@context.RequestTitle</MudTd>
+
+        <MudTd>
+            <MudText>@context.RequestTaskDescription</MudText>
+        </MudTd>
+
+        <MudTd>
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">@context.StatusName</MudChip>
+        </MudTd>
+
+        <MudTd>
+            <MudButtonGroup>
+                <MudIconButton Icon="@Icons.Material.TwoTone.Visibility"
+                               Color="Color.Primary"
+                               OnClick="@(() => ViewRequest(context.RequestTaskId))" />
+
+                <MudIconButton Icon="@Icons.Material.TwoTone.Edit"
+                               Color="Color.Secondary"
+                               OnClick="@(() => EditRequest(context.RequestTaskId))" />
+
+                <MudIconButton Icon="@Icons.Material.TwoTone.Delete"
+                               Color="Color.Error"
+                               OnClick="@(() => SoftDeleteTask(context.RequestTaskId))" />
+            </MudButtonGroup>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<RequestsDTO> _requests = new();
+    private List<RequestsDTO> _filteredRequests = new();
+
+    private List<string> _statuses = new();
+    private List<string> _ranks = new();
+
+    private string _search = "";
+    private string _statusFilter = "";
+    private string _rankFilter = "";
+
+    private TmscDbContext _context = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRequestsAsync();
+        BuildFilters();
+        ApplyFilters();
+    }
+
+    private void BuildFilters()
+    {
+        _statuses = _requests.Select(r => r.StatusName).Distinct().OrderBy(x => x).ToList();
+        _ranks = _requests.Select(r => r.RankShortName).Distinct().OrderBy(x => x).ToList();
+    }
+
+    private void ApplyFilters()
+    {
+        _filteredRequests = _requests
+            .Where(r =>
+                (string.IsNullOrWhiteSpace(_search) ||
+                 r.RequestTitle.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 r.RequestTaskDescription.Contains(_search, StringComparison.OrdinalIgnoreCase))
+                &&
+                (string.IsNullOrWhiteSpace(_statusFilter) || r.StatusName == _statusFilter)
+                &&
+                (string.IsNullOrWhiteSpace(_rankFilter) || r.RankShortName == _rankFilter)
+            )
+            .ToList();
+    }
+
+    private async Task SoftDeleteTask(Guid taskId)
+    {
+        var task = _requests.FirstOrDefault(x => x.RequestTaskId == taskId);
+        if (task != null)
+        {
+            task.RequestArchive = true;
+            await _context.SaveChangesAsync();
+            await RefreshRequestsAsync();
+        }
+    }
+
+    private async Task ViewRequest(Guid taskId)
+    {
+        var parameters = new DialogParameters { ["RequestTaskId"] = taskId };
+        var options = new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large };
+        await DialogService.ShowAsync<DetailsDialog>("Request Details", parameters, options);
+    }
+
+    private async Task EditRequest(Guid taskId)
+    {
+        var parameters = new DialogParameters { ["RequestTaskId"] = taskId };
+        var options = new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large };
+        await DialogService.ShowAsync<EditDialog>("Edit Request", parameters, options);
+    }
+
+    private async Task RefreshRequestsAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // keep this if component still performs direct updates (SoftDeleteTask)
+        _context = DbFactory.CreateDbContext();
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            // Use the service which handles latest-update assignment lookups and identity batching
+            _requests = await RequestService.GetRequestsForUserAsync(user);
+        }
+
+        BuildFilters();
+        ApplyFilters();
+    }
+}

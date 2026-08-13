@@ -1,0 +1,26 @@
+﻿<MudPaper Class="pa-2" Elevation="0">
+    <MudGrid>
+        <MudItem xs="9">
+            <MudTextField @bind-Value="Field.Description"
+                Label="@label"
+                Variant="Variant.Outlined"
+                Required="true"
+                />
+        </MudItem>
+        <MudItem xs="3">
+            <MudSelect T="int?" @bind-Value="Field.trafficLightId"
+                Label="Status"
+                Variant="Variant.Outlined"
+                Required="true"
+            >
+
+                    @foreach (var tl in trafficLights)
+                    {
+                        <MudSelectItem Value="@tl.trafficLightId">@tl.trafficLightName</MudSelectItem>
+                    }
+                    </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+

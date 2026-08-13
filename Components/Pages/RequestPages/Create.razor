@@ -1,0 +1,162 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using TyphoonTaskingTool.DTOs
+@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Services
+@inject IDbContextFactory<TyphoonTaskingTool.Data.TmscDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject ILookupRankService LookupRankService
+@inject ILookupUnitService LookupUnitService
+@inject ILookupTeamService LookupTeamService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+
+        <MudPaper Class="pa-4" Outlined="true" Style="max-width: 100%; margin:auto;">
+            <MudText Typo="Typo.h5" Class="mb-2">Create New MSC Task Request</MudText>
+            <MudText Align="Align.Center" Typo="Typo.body2" Class="mb-4">
+                Use this task request form when you have you wish to submit a request for information (RFI) or have a general query/task that you wish to submit to the Ty MSC.
+            </MudText>
+
+            <MudForm @ref="_form" Model="@Request" @bind-IsValid="_isValid" @bind-Errors="_errors">
+
+                <MudGrid>
+                    <!-- LEFT COLUMN -->
+                    <MudItem xs="12" md="8">
+
+                        <!-- Task Summary -->
+                        <MudPaper Class="pa-4 mb-4" Elevation="1">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">Task Summary</MudText>
+
+                            <MudTextField 
+                                Label="Title"
+                                @bind-Value="Request.RequestTitle"
+                                Variant="Variant.Outlined"
+                                Placeholder="Short summary of the task"
+                                Class="mb-3" />
+
+                            <MudTextField 
+                                Label="Description"
+                                @bind-Value="Request.RequestTaskDescription"
+                                Variant="Variant.Outlined"
+                                Lines="8"
+                                AutoGrow="true"
+                                Placeholder="Describe the task, expected outcome, and relevant context" />
+                        </MudPaper>
+
+                        <!-- Assignment -->
+                        <MudPaper Class="pa-4 mb-4" Elevation="1">
+                            <MudText Typo="Typo.h6" Class="mb-2">Assignment: <MudText Typo="Typo.body2" Inline="true">If you know the team you wish to submit your request to please select here. Otherwise leave blank. </MudText></MudText>
+
+                            <MudSelect T="int?" 
+                                       Label="MSC Team"
+                                       @bind-Value="Request.TeamId"
+                                       Variant="Variant.Outlined"
+                                       Placeholder="Select team (optional)">
+                                @if (_teamList != null)
+                                {
+                                    @foreach (var t in _teamList)
+                                    {
+                                        <MudSelectItem T="int?" Value="@t.TeamId">@t.TeamNameShort — @t.TeamNameLong</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                        </MudPaper>
+
+                    </MudItem>
+
+                    <!-- RIGHT COLUMN -->
+                    <MudItem xs="12" md="4">
+
+                        <MudPaper Class="pa-4 mb-4" Elevation="1">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">Requester Details</MudText>
+
+                            <MudSelect T="int?" Label="Rank" @bind-Value="Request.RankId" Variant="Variant.Outlined">
+                                @if (_rankList != null)
+                                {
+                                    @foreach (var r in _rankList)
+                                    {
+                                        <MudSelectItem T="int?" Value="@r.RankId">@r.RankNameShort — @r.RankNameLong</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+
+                            <MudTextField Label="First Name" @bind-Value="Request.RequestFirstName" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField Label="Last Name" @bind-Value="Request.RequestLastName" Variant="Variant.Outlined" Class="mt-3" />
+
+                            <MudSelect T="int?" Label="Unit" @bind-Value="Request.UnitId" Variant="Variant.Outlined" Class="mt-3">
+                                @if (_unitList != null)
+                                {
+                                    @foreach (var u in _unitList)
+                                    {
+                                        <MudSelectItem T="int?" Value="@u.UnitId">@u.UnitNameShort — @u.UnitNameLong</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+
+                            <MudTextField Label="Contact Number" @bind-Value="Request.RequestContactPhone" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField Label="Contact Email" @bind-Value="Request.RequestEmailAdd" Variant="Variant.Outlined" Class="mt-3" />
+                        </MudPaper>
+
+                    </MudItem>
+                </MudGrid>
+                <MudPaper Class="pa-4 mb-6" Elevation="1">
+                <MudText Typo="Typo.h6">Attach Document: <MudText Typo="Typo.body2" Inline="true">Documents up to OFFICIAL SENSTITIVE only and if they relate directly to the task being raised. </MudText></MudText>
+                    <MudFileUpload @bind-Files="@_uploadFile" Class="mud-width-full">
+
+                        <CustomContent>
+                            <MudButtonGroup Color="Color.Secondary" Variant="Variant.Filled" Class="mud-width-full">
+
+                                <MudButton Variant="Variant.Filled"
+                                           OnClick="@context.OpenFilePickerAsync"
+                                           Style="min-width: 150px;">
+                                    Choose file
+                                </MudButton>
+
+                                <MudPaper Class="mud-width-full flex-wrap d-flex align-center justify-center
+                                    mud-border-secondary mud-text-secondary"
+                                          Style="background-color:inherit;"
+                                          Outlined="true">
+                                    @if (_uploading)
+                                    {
+                                        <MudProgressLinear Class="mx-2"
+                                                           Color="Color.Tertiary"
+                                                           Size="Size.Large"
+                                                           Value="_uploadValue"
+                                                           Min="_uploadMin"
+                                                           Max="_uploadMax" />
+                                    }
+                                    else
+                                    {
+                                        @(context.GetFilenames().Count > 0 ? context.GetFilenames()[0] : " ")
+                                    }
+                                </MudPaper>
+
+                                <MudButton Variant="Variant.Filled"
+                                           OnClick="@Upload"
+                                           Disabled="@(!context.GetFilenames().Any())">
+                                    Upload
+                                </MudButton>
+
+                            </MudButtonGroup>
+                        </CustomContent>
+
+                        <SelectedTemplate />
+                    </MudFileUpload> 
+                </MudPaper>
+
+
+            </MudForm>
+        </MudPaper>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm">
+            Create Request
+        </MudButton>
+        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="CloseDialog">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>

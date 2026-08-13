@@ -1,0 +1,27 @@
+﻿@using TyphoonTaskingTool.Models
+@using TyphoonTaskingTool.Models.RigRequestModels
+<MudPaper Class="pa-4" Elevation="0">
+    <RigRequestFieldEditor Label="MIDS - Tiger"
+                           Field="Model.additionalSystem_Mids_Tiger"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="PASIS"
+                           Field="Model.additionalSystem_Pasis"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Meteor Emulator"
+                           Field="Model.additionalSystem_Meteor_Em"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="ASRAAM Emulator"
+                           Field="Model.additionalSystem_Asraam_Em"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Storm Shadow Emulator"
+                           Field="Model.additionalSystem_SS_Em"
+                           trafficLights="TrafficLights" />
+    <RigRequestFieldEditor Label="Brimstone Emulator"
+                           Field="Model.additionalSystem_B2_Em"
+                           trafficLights="TrafficLights" />
+</MudPaper>
+@code {
+
+    [Parameter] public AdditionalSystems Model { get; set; } = default!;
+    [Parameter] public List<LookupTrafficLight> TrafficLights { get; set; } = new();
+}
